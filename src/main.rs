@@ -171,7 +171,7 @@ impl Component for Model {
                 </header>
                 <div class="card-content">
                 <div class="content">
-                <form id="download-ical" action="/api/ical" method="post" target="_blank">
+                <form id="download-ical" action="https://api.whynotcats.com/ical" method="post" target="_blank">
                 <label class="label" for="days">{"Number of days to generate"}
                     <input class="input" onchange={change_days} id="days" name="number_of_days" value={self.days.to_string()} type="number"/>
                 </label>

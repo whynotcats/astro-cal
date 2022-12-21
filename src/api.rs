@@ -41,7 +41,7 @@ impl Api {
             let mut data: Vec<LocationData> = Vec::new();
 
             for raw in body.as_array().unwrap() {
-                log::info!("Parsing response: {}", raw);
+                log::debug!("Parsing response: {}", raw);
                 let location: LocationData = serde_json::from_value(raw.clone()).unwrap();
                 data.push(location);
             }

@@ -20,9 +20,3 @@ wasm-bindgen-futures = "0.4"
 log = "0.4.6"
 wasm-logger = "0.2.0"
 icalendar = "0.13.3"
-
-[profile.release]
-panic = 'abort'
-codegen-units = 1
-opt-level = 'z' 
-lto = true

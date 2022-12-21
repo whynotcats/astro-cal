@@ -17,10 +17,6 @@ impl OpenWeather {
         }
     }
 
-    // pub async fn query_location(&self, query: &str) -> Result<Vec<LocationData>> {
-    //     self.query(&format!("direct?q={}", &query)).await
-    // }
-
     fn format_addr(&self, query: &str) -> String {
         let base_http = "https://api.openweathermap.org/geo/1.0/";
         format!("{}{}&limit=5&appid={}", &base_http, &query, self.api_key,)
