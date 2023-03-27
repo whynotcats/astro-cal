@@ -1,29 +1,18 @@
 // use chrono::prelude::*;
 pub mod api;
+pub mod components;
 pub mod models;
 
 pub use api::Api;
+use components::{calendar::CalendarForm, calendar::CalendarProps, header::Header};
 pub use models::*;
 use wasm_bindgen::JsCast;
 use web_sys::{EventTarget, HtmlInputElement, KeyboardEvent, MouseEvent};
 use yew::{
-    function_component, props, use_effect_with_deps, use_memo, use_state, AttrValue, Html,
-    Properties, UseStateHandle,
+    function_component, props, use_effect_with_deps, use_memo, use_state, Html, UseStateHandle,
 };
 use yew::{html, Callback};
 use yew_hooks::{use_debounce, UseDebounceHandle};
-
-#[function_component]
-fn Header() -> Html {
-    html! {
-        <div class="columns is-mobile is-centered">
-            <div id="title" class="column is-three-quarters">
-                <p class="title is-3 has-text-centered">{"Astrological Calendar Events"}</p>
-                <p class="subtitle is-5 has-text-centered">{"Generate calendar events so you never miss a moonrise"}</p>
-            </div>
-        </div>
-    }
-}
 
 fn input_keyup_callback(
     state: &UseStateHandle<String>,
@@ -35,12 +24,7 @@ fn input_keyup_callback(
     Callback::from(move |e: KeyboardEvent| {
         let target: Option<EventTarget> = e.target();
         let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
-        state.set(
-            input
-                .clone()
-                .expect("Should have valid input element")
-                .value(),
-        );
+        state.set(input.expect("Should have valid input element").value());
 
         debounced_callback.run();
     })
@@ -55,50 +39,6 @@ fn select_location_callback(
         e.prevent_default();
         location_state.set(Some(result.clone()));
     })
-}
-
-#[derive(Properties, PartialEq, Clone)]
-struct CalendarProps {
-    #[prop_or(AttrValue::from("UTC"))]
-    timezone: AttrValue,
-    latitude: f64,
-    longitude: f64,
-}
-
-#[function_component(CalendarForm)]
-fn create_calendar_form(props: &CalendarProps) -> Html {
-    html! {
-        <div class="card">
-            <header class="card-header">
-                <p class="card-header-title">
-                {"Generate Calendar Events"}
-                </p>
-            </header>
-            <div class="card-content">
-                <div class="content">
-                    <form id="download-ical" action="https://api.whynotcats.com/ical" method="post" target="_blank">
-                        <label class="label" for="days">{"Number of days to generate"}
-                            <input class="input" id="days" name="number_of_days" value={30} type="number"/>
-                        </label>
-                        <label class="label" for="before">{"Minutes before moonrise to start calendar event"}
-                            <input class="input" id="before" name="before" value={15} type="number"/>
-                        </label>
-                        <label class="label" for="after">{"Minutes after moonrise to end calendar event"}
-                            <input class="input" id="after" name="after" value={0} type="number"/>
-                        </label>
-                        <input type="text" hidden=true name="timezone" value={props.timezone.clone()}/>
-                        <input type="float" hidden=true name="lat" value={props.latitude.to_string()}/>
-                        <input type="float" hidden=true name="lon" value={props.longitude.to_string()}/>
-                        <div class="field">
-                            <div class="control">
-                                <input class="button is-primary" type="submit" id="submit-ical" value="Download iCal"/>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    }
 }
 
 #[function_component]
