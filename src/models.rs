@@ -20,6 +20,19 @@ pub struct LocationData {
     pub population: Option<usize>,
 }
 
+impl LocationData {
+    pub fn html_key(&self) -> String {
+        format!(
+            "{}_{}_{}_{}",
+            self.name,
+            self.admin1.clone().unwrap_or_default(),
+            self.admin2.clone().unwrap_or_default(),
+            self.country_code
+        )
+        .replace(' ', "_")
+    }
+}
+
 impl Display for LocationData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(

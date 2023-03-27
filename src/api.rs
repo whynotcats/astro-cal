@@ -41,10 +41,24 @@ impl Api {
             let mut data: Vec<LocationData> = Vec::new();
 
             for raw in body.as_array().unwrap() {
-                log::debug!("Parsing response: {}", raw);
+                // log::debug!("Parsing response: {}", raw);
                 let location: LocationData = serde_json::from_value(raw.clone()).unwrap();
                 data.push(location);
             }
+
+            // Remove duplicates
+            data.sort_by(|a, b| {
+                if a.html_key().cmp(&b.html_key()) == std::cmp::Ordering::Equal {
+                    a.modification_date.cmp(&b.modification_date)
+                } else {
+                    a.html_key().cmp(&b.html_key())
+                }
+            });
+            data.dedup_by(|a, b| a.html_key() == b.html_key());
+
+            // Sort by population
+            data.sort_by_key(|a| a.population.unwrap_or(0));
+
             Ok(data)
         }
     }
