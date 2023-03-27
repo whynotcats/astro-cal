@@ -5,7 +5,7 @@ pub mod models;
 pub use api::Api;
 pub use models::*;
 use wasm_bindgen::JsCast;
-use web_sys::{Event, EventTarget, HtmlInputElement, KeyboardEvent, MouseEvent};
+use web_sys::{EventTarget, HtmlInputElement, KeyboardEvent, MouseEvent};
 use yew::{
     function_component, props, use_effect_with_deps, use_memo, use_state, AttrValue, Html,
     Properties, UseStateHandle,
@@ -26,20 +26,23 @@ fn Header() -> Html {
 }
 
 fn input_keyup_callback(
-    state: &UseStateHandle<Option<String>>,
-    debounce_callback: &UseDebounceHandle,
+    state: &UseStateHandle<String>,
+    debounced_callback: &UseDebounceHandle,
 ) -> Callback<KeyboardEvent> {
     let state = state.clone();
-    let debounce_callback = debounce_callback.clone();
-    debounce_callback.cancel();
+    let debounced_callback = debounced_callback.clone();
 
     Callback::from(move |e: KeyboardEvent| {
         let target: Option<EventTarget> = e.target();
         let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
-        state.set(Some(
-            input.expect("Should have valid input element").value(),
-        ));
-        debounce_callback.run();
+        state.set(
+            input
+                .clone()
+                .expect("Should have valid input element")
+                .value(),
+        );
+
+        debounced_callback.run();
     })
 }
 
@@ -54,22 +57,6 @@ fn select_location_callback(
     })
 }
 
-fn counter_callback(state: &UseStateHandle<i64>) -> Callback<Event> {
-    let state = state.clone();
-    Callback::from(move |e: Event| {
-        let target: Option<EventTarget> = e.target();
-        e.prevent_default();
-        let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
-        state.set(
-            input
-                .expect("Input should be valid DOM element")
-                .value()
-                .parse::<i64>()
-                .expect("Value to be a number"),
-        );
-    })
-}
-
 #[derive(Properties, PartialEq, Clone)]
 struct CalendarProps {
     #[prop_or(AttrValue::from("UTC"))]
@@ -80,10 +67,6 @@ struct CalendarProps {
 
 #[function_component(CalendarForm)]
 fn create_calendar_form(props: &CalendarProps) -> Html {
-    let days = use_state(|| 0);
-    let before = use_state(|| 15);
-    let after = use_state(|| 0);
-
     html! {
         <div class="card">
             <header class="card-header">
@@ -95,13 +78,13 @@ fn create_calendar_form(props: &CalendarProps) -> Html {
                 <div class="content">
                     <form id="download-ical" action="https://api.whynotcats.com/ical" method="post" target="_blank">
                         <label class="label" for="days">{"Number of days to generate"}
-                            <input class="input" onchange={counter_callback(&days)} id="days" name="number_of_days" value={(*days).to_string()} type="number"/>
+                            <input class="input" id="days" name="number_of_days" value={30} type="number"/>
                         </label>
                         <label class="label" for="before">{"Minutes before moonrise to start calendar event"}
-                            <input class="input" onchange={counter_callback(&before)} id="before" name="before" value={(*before).to_string()} type="number"/>
+                            <input class="input" id="before" name="before" value={15} type="number"/>
                         </label>
                         <label class="label" for="after">{"Minutes after moonrise to end calendar event"}
-                            <input class="input" onchange={counter_callback(&after)} id="after" name="after" value={(*after).to_string()} type="number"/>
+                            <input class="input" id="after" name="after" value={0} type="number"/>
                         </label>
                         <input type="text" hidden=true name="timezone" value={props.timezone.clone()}/>
                         <input type="float" hidden=true name="lat" value={props.latitude.to_string()}/>
@@ -120,30 +103,25 @@ fn create_calendar_form(props: &CalendarProps) -> Html {
 
 #[function_component]
 fn App() -> Html {
-    let location_text: UseStateHandle<Option<String>> = use_state(|| None);
-    let debounced_text: UseStateHandle<String> = use_state(String::new);
+    let location_text = use_state(String::new);
+    let debounced_text = use_state(String::new);
     let selected_location: UseStateHandle<Option<LocationData>> = use_state(|| None);
     let client = use_memo(|_| Api::new(), ());
     let error = use_state(|| false);
     let results: UseStateHandle<Vec<LocationData>> = use_state(Vec::new);
     let html_results = results.clone();
-    let debounce = {
+    let debounce_callback = {
         let location_text = location_text.clone();
+        let debounced_text = debounced_text.clone();
         use_debounce(
             move || {
-                debounced_text.set(
-                    (*location_text)
-                        .clone()
-                        .unwrap_or_default()
-                        .trim()
-                        .to_string(),
-                );
+                debounced_text.set((*location_text).clone());
             },
             300,
         )
     };
 
-    let location_callback = input_keyup_callback(&location_text, &debounce);
+    let location_callback = input_keyup_callback(&location_text, &debounce_callback);
 
     let calendar_props = use_memo(
         |location| match location.clone() {
@@ -171,10 +149,11 @@ fn App() -> Html {
     use_effect_with_deps(
         move |l| {
             let l = l.clone();
-            if l.is_some() {
+            log::debug!("Location text changed: {}", l);
+            if !l.is_empty() {
                 let results = results.clone();
                 wasm_bindgen_futures::spawn_local(async move {
-                    let text = l.clone().unwrap();
+                    let text = l.clone();
                     match client.query_location(&text).await {
                         Ok(result) => {
                             log::info!("{:?}", result);
@@ -188,7 +167,7 @@ fn App() -> Html {
                 });
             }
         },
-        (*location_text).clone(),
+        (*debounced_text).clone(),
     );
 
     html! {
