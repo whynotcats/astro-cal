@@ -1,6 +1,6 @@
 [build]
 target = "index.html"
-dist = "../dist"
+dist = "../dist/astro-cal"
 
 [[proxy]]
 backend = "http://[::1]:8081/api/"
